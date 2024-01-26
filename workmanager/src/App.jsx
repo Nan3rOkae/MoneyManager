@@ -90,6 +90,7 @@ export default function WorkLogPage() {
     setIsOpen(true);
     setSelectedEntryIndex(index);
   };
+  
 
   const onClose = () => {
     setIsOpen(false);
@@ -275,7 +276,9 @@ export default function WorkLogPage() {
               <p>Total time: {entry.duration}</p>
               <p>Tips: ${entry.tips}</p>
               <div className="flex mt-6 gap-10">
-                <Button color="primary">Edit</Button>
+                <Button color="primary" onPress={() => onOpen(index)}>
+                  Edit
+                </Button>
                 <Button
                   color="danger"
                   variant="bordered"
@@ -285,11 +288,11 @@ export default function WorkLogPage() {
               </div>
             </div>
           ))}
-          <Modal isOpen={isOpen} setIsOpen={setIsOpen}>
+          <Modal isOpen={isOpen} setIsOpen={setIsOpen} onClose={onClose}>
             <ModalContent>
               {(onClose) => (
                 <>
-                  <ModalHeader className="flex flex-col gap-1">
+                  <ModalHeader className="flex flex-col gap-1 text-red-500 font-bold">
                     Are you sure you want to delete this entry?
                   </ModalHeader>
                   <ModalBody>
