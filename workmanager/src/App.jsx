@@ -1,16 +1,11 @@
 import React, { useState, useEffect } from "react";
 import {
-  Dropdown,
-  DropdownTrigger,
-  DropdownMenu,
-  DropdownItem,
   Button,
   Modal,
   ModalContent,
   ModalHeader,
   ModalBody,
   ModalFooter,
-  useDisclosure,
 } from "@nextui-org/react";
 
 export default function WorkLogPage() {
@@ -35,12 +30,17 @@ export default function WorkLogPage() {
   const [entries, setEntries] = useState(loadEntries());
   const [selectedEntryIndex, setSelectedEntryIndex] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [modalType, setModalType] = useState(null);
   const [currentEntry, setCurrentEntry] = useState({
     date: formatDate(new Date()),
     startTime: { hour: "0", minute: "00", period: "AM" },
     endTime: { hour: "0", minute: "00", period: "AM" },
     tips: "",
   });
+
+  const deleteAllEntries = () => {
+    setEntries([]);
+  };
 
   const convertTo24Hour = (time) => {
     let hours = parseInt(time.hour);
@@ -86,11 +86,31 @@ export default function WorkLogPage() {
     setEntries([...entries, { ...currentEntry, duration }]);
     setCurrentEntry({ ...currentEntry, tips: "" });
   };
-  const onOpen = (index) => {
+  const handleEditSubmit = (e) => {
+    e.preventDefault();
+    const updatedEntries = entries.map((entry, idx) =>
+      idx === selectedEntryIndex
+        ? { ...currentEntry, duration: calculateDuration() }
+        : entry
+    );
+    setEntries(updatedEntries);
+    onClose();
+    setCurrentEntry({
+      date: formatDate(new Date()),
+      startTime: { hour: "0", minute: "00", period: "AM" },
+      endTime: { hour: "0", minute: "00", period: "AM" },
+      tips: "",
+    });
+  };
+
+  const onOpen = (index, type) => {
     setIsOpen(true);
     setSelectedEntryIndex(index);
+    setModalType(type);
+    if (type === "edit") {
+      setCurrentEntry({ ...entries[index] });
+    }
   };
-  
 
   const onClose = () => {
     setIsOpen(false);
@@ -256,66 +276,219 @@ export default function WorkLogPage() {
             </form>
           </div>
         </div>
-        <div className="w-1/3 max-h-screen overflow-auto">
-          <div className="flex justify-center p-2 border-b-2 border-gray-300">
+        <div className="w-1/3">
+          <div className="flex-row bg-white justify-center items-centerp-2 border-b-2 border-gray-300 p-8 gap-10">
             <h1 className="text-2xl font-black">Work Entries</h1>
+            {/* <Button color="danger" onClick={deleteAllEntries}>
+              Delete All Entries
+            </Button> */}
           </div>
-          {entries.map((entry, index) => (
-            <div
-              className="border-t-2 border-gray-200 p-4 flex flex-col gap-2"
-              key={index}>
-              <p>Date: {entry.date}</p>
-              <p>
-                Start Time: {entry.startTime.hour}:{entry.startTime.minute}{" "}
-                {entry.startTime.period}
-              </p>
-              <p>
-                End Time: {entry.endTime.hour}:{entry.endTime.minute}{" "}
-                {entry.endTime.period}
-              </p>
-              <p>Total time: {entry.duration}</p>
-              <p>Tips: ${entry.tips}</p>
-              <div className="flex mt-6 gap-10">
-                <Button color="primary" onPress={() => onOpen(index)}>
-                  Edit
-                </Button>
-                <Button
-                  color="danger"
-                  variant="bordered"
-                  onPress={() => onOpen(index)}>
-                  Delete
-                </Button>
+          <div className="max-h-[800px] overflow-auto">
+            {entries.map((entry, index) => (
+              <div
+                className="border-t-2 border-gray-200 p-4 flex flex-col "
+                key={index}>
+                <p>Date: {entry.date}</p>
+                <p>
+                  Start Time: {entry.startTime.hour}:{entry.startTime.minute}{" "}
+                  {entry.startTime.period}
+                </p>
+                <p>
+                  End Time: {entry.endTime.hour}:{entry.endTime.minute}{" "}
+                  {entry.endTime.period}
+                </p>
+                <p>Total time: {entry.duration}</p>
+                <p>Tips: ${entry.tips}</p>
+                <div className="flex mt-6 gap-10">
+                  <Button color="primary" onPress={() => onOpen(index, "edit")}>
+                    Edit
+                  </Button>
+                  <Button
+                    color="danger"
+                    variant="bordered"
+                    onPress={() => onOpen(index, "delete")}>
+                    Delete
+                  </Button>
+                </div>
               </div>
-            </div>
-          ))}
-          <Modal isOpen={isOpen} setIsOpen={setIsOpen} onClose={onClose}>
-            <ModalContent>
-              {(onClose) => (
-                <>
-                  <ModalHeader className="flex flex-col gap-1 text-red-500 font-bold">
-                    Are you sure you want to delete this entry?
-                  </ModalHeader>
-                  <ModalBody>
-                    <p>
-                      Once you delete this entry you can no longer have have
-                      this saved in the list.
-                    </p>
-                  </ModalBody>
-                  <ModalFooter>
-                    <Button color="primary" onPress={onClose}>
-                      Back
-                    </Button>
-                    <Button
-                      color="danger"
-                      variant="light"
-                      onClick={deleteEntry}>
-                      Delete
-                    </Button>
-                  </ModalFooter>
-                </>
-              )}
-            </ModalContent>
-          </Modal>
+            ))}
+            <Modal isOpen={isOpen} onClose={onClose}>
+              <ModalContent>
+                {modalType === "delete" && (
+                  <>
+                    <ModalHeader>
+                      Are you sure you want to delete this entry?
+                    </ModalHeader>
+                    <ModalBody>
+                      <p>
+                        Once you delete this entry you can no longer have have
+                        this saved in the list.
+                      </p>
+                    </ModalBody>
+                    <ModalFooter>
+                      <Button color="primary" onPress={onClose}>
+                        Back
+                      </Button>
+                      <Button
+                        color="danger"
+                        variant="light"
+                        onClick={deleteEntry}>
+                        Delete
+                      </Button>
+                    </ModalFooter>
+                  </>
+                )}
+                {modalType === "edit" && (
+                  <div className="flex flex-col justify-center items-center">
+                    <ModalHeader>Edit Entry</ModalHeader>
+                    <form
+                      className="flex flex-col  p-8 w-[400px]  ml-10 gap-4"
+                      onSubmit={handleEditSubmit}>
+                      <input
+                        type="date"
+                        value={currentEntry.date}
+                        onChange={(e) =>
+                          setCurrentEntry({
+                            ...currentEntry,
+                            date: e.target.value,
+                          })
+                        }
+                        className="max-w-[200px] border-1 border-gray-300 p-4 rounded-xl"
+                      />
+                      <div className="border-1 border-gray-300 p-4 rounded-xl w-[260px] ">
+                        <label className="font-medium">Start Time:</label>
+                        <select
+                          value={currentEntry.startTime.hour}
+                          onChange={(e) =>
+                            setCurrentEntry({
+                              ...currentEntry,
+                              startTime: {
+                                ...currentEntry.startTime,
+                                hour: e.target.value,
+                              },
+                            })
+                          }>
+                          {Array.from({ length: 12 }, (_, i) => i + 1).map(
+                            (hour) => (
+                              <option key={hour} value={hour}>
+                                {hour}
+                              </option>
+                            )
+                          )}
+                        </select>
+                        <select
+                          value={currentEntry.startTime.minute}
+                          onChange={(e) =>
+                            setCurrentEntry({
+                              ...currentEntry,
+                              startTime: {
+                                ...currentEntry.startTime,
+                                minute: e.target.value,
+                              },
+                            })
+                          }>
+                          {generateMinuteOptions().map((minute) => (
+                            <option key={minute} value={minute}>
+                              {minute}
+                            </option>
+                          ))}
+                        </select>
+                        <select
+                          value={currentEntry.startTime.period}
+                          onChange={(e) =>
+                            setCurrentEntry({
+                              ...currentEntry,
+                              startTime: {
+                                ...currentEntry.startTime,
+                                period: e.target.value,
+                              },
+                            })
+                          }>
+                          <option value="AM">AM</option>
+                          <option value="PM">PM</option>
+                        </select>
+                      </div>
+
+                      <div className="border-1 border-gray-300 p-4 rounded-xl w-[260px] ">
+                        <label className="font-medium">End Time:</label>
+                        <select
+                          value={currentEntry.endTime.hour}
+                          onChange={(e) =>
+                            setCurrentEntry({
+                              ...currentEntry,
+                              endTime: {
+                                ...currentEntry.endTime,
+                                hour: e.target.value,
+                              },
+                            })
+                          }>
+                          {Array.from({ length: 12 }, (_, i) => i + 1).map(
+                            (hour) => (
+                              <option key={hour} value={hour}>
+                                {hour}
+                              </option>
+                            )
+                          )}
+                        </select>
+                        <select
+                          value={currentEntry.endTime.minute}
+                          onChange={(e) =>
+                            setCurrentEntry({
+                              ...currentEntry,
+                              endTime: {
+                                ...currentEntry.endTime,
+                                minute: e.target.value,
+                              },
+                            })
+                          }>
+                          {generateMinuteOptions().map((minute) => (
+                            <option key={minute} value={minute}>
+                              {minute}
+                            </option>
+                          ))}
+                        </select>
+                        <select
+                          value={currentEntry.endTime.period}
+                          onChange={(e) =>
+                            setCurrentEntry({
+                              ...currentEntry,
+                              endTime: {
+                                ...currentEntry.endTime,
+                                period: e.target.value,
+                              },
+                            })
+                          }>
+                          <option value="AM">AM</option>
+                          <option value="PM">PM</option>
+                        </select>
+                      </div>
+
+                      <input
+                        type="number"
+                        value={currentEntry.tips}
+                        onChange={(e) =>
+                          setCurrentEntry({
+                            ...currentEntry,
+                            tips: e.target.value,
+                          })
+                        }
+                        placeholder="$ Tips"
+                        className="max-w-[200px] border-1 border-gray-300 p-4 rounded-xl"
+                      />
+                      <div className="flex justify-center items-center mt-4">
+                        <Button
+                          color="primary"
+                          className="w-[40%] p-[30px]"
+                          type="submit">
+                          Submit
+                        </Button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+              </ModalContent>
+            </Modal>
+          </div>
         </div>
       </div>
     </div>
