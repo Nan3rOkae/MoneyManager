@@ -33,13 +33,14 @@ export default function WorkLogPage() {
 
   // Initialize entries state with data from local storage
   const [entries, setEntries] = useState(loadEntries());
+  const [selectedEntryIndex, setSelectedEntryIndex] = useState(null);
+  const [isOpen, setIsOpen] = useState(false);
   const [currentEntry, setCurrentEntry] = useState({
     date: formatDate(new Date()),
     startTime: { hour: "0", minute: "00", period: "AM" },
     endTime: { hour: "0", minute: "00", period: "AM" },
     tips: "",
   });
- const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   const convertTo24Hour = (time) => {
     let hours = parseInt(time.hour);
@@ -85,11 +86,20 @@ export default function WorkLogPage() {
     setEntries([...entries, { ...currentEntry, duration }]);
     setCurrentEntry({ ...currentEntry, tips: "" });
   };
-    const deleteEntry = (indexToDelete) => {
-      const newEntries = entries.filter((_, index) => index !== indexToDelete);
-      setEntries(newEntries);
-      localStorage.setItem("entries", JSON.stringify(newEntries));
-    };
+  const onOpen = (index) => {
+    setIsOpen(true);
+    setSelectedEntryIndex(index);
+  };
+
+  const onClose = () => {
+    setIsOpen(false);
+    setSelectedEntryIndex(null);
+  };
+
+  const deleteEntry = () => {
+    setEntries(entries.filter((_, i) => i !== selectedEntryIndex));
+    onClose();
+  };
 
   // Save entries to local storage whenever they change
   useEffect(() => {
@@ -106,7 +116,7 @@ export default function WorkLogPage() {
           <div className="p-4 flex flex-col justify-center items-center">
             <h1 className="text-3xl font-black">Work Time and Tip Manager</h1>
             <p className="text-lg mt-2">
-              Enter your work-time and tips for each day
+              Enter your work-time and tips for each day you work.
             </p>
           </div>
           <div className="flex justify-center items-center p-3">
@@ -235,7 +245,10 @@ export default function WorkLogPage() {
                 className="max-w-[200px] border-1 border-gray-300 p-4 rounded-xl"
               />
               <div className="flex justify-center mt-4">
-                <Button color="primary" className="w-[50%]" type="submit">
+                <Button
+                  color="primary"
+                  className="w-[20%] p-[30px]"
+                  type="submit">
                   Submit
                 </Button>
               </div>
@@ -243,12 +256,12 @@ export default function WorkLogPage() {
           </div>
         </div>
         <div className="w-1/3 max-h-screen overflow-auto">
-          <div>
-            <h1></h1>
+          <div className="flex justify-center p-2 border-b-2 border-gray-300">
+            <h1 className="text-2xl font-black">Work Entries</h1>
           </div>
           {entries.map((entry, index) => (
             <div
-              className="border-2 border-gray-300 p-4 flex flex-col gap-2"
+              className="border-t-2 border-gray-200 p-4 flex flex-col gap-2"
               key={index}>
               <p>Date: {entry.date}</p>
               <p>
@@ -259,66 +272,47 @@ export default function WorkLogPage() {
                 End Time: {entry.endTime.hour}:{entry.endTime.minute}{" "}
                 {entry.endTime.period}
               </p>
-              <p>Duration: {entry.duration}</p>
+              <p>Total time: {entry.duration}</p>
               <p>Tips: ${entry.tips}</p>
-              <div className="flex mt-6">
-                <Button color="primary" onPress={onOpen}>
-                  Edit
-                </Button>
+              <div className="flex mt-6 gap-10">
+                <Button color="primary">Edit</Button>
                 <Button
                   color="danger"
                   variant="bordered"
-                  onClick={() => deleteEntry(index)}>
+                  onPress={() => onOpen(index)}>
                   Delete
                 </Button>
-                <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
-                  <ModalContent>
-                    {(onClose) => (
-                      <>
-                        <ModalHeader className="flex flex-col gap-1">
-                          Modal Title
-                        </ModalHeader>
-                        <ModalBody>
-                          <p>
-                            Lorem ipsum dolor sit amet, consectetur adipiscing
-                            elit. Nullam pulvinar risus non risus hendrerit
-                            venenatis. Pellentesque sit amet hendrerit risus,
-                            sed porttitor quam.
-                          </p>
-                          <p>
-                            Lorem ipsum dolor sit amet, consectetur adipiscing
-                            elit. Nullam pulvinar risus non risus hendrerit
-                            venenatis. Pellentesque sit amet hendrerit risus,
-                            sed porttitor quam.
-                          </p>
-                          <p>
-                            Magna exercitation reprehenderit magna aute tempor
-                            cupidatat consequat elit dolor adipisicing. Mollit
-                            dolor eiusmod sunt ex incididunt cillum quis. Velit
-                            duis sit officia eiusmod Lorem aliqua enim laboris
-                            do dolor eiusmod. Et mollit incididunt nisi
-                            consectetur esse laborum eiusmod pariatur proident
-                            Lorem eiusmod et. Culpa deserunt nostrud ad veniam.
-                          </p>
-                        </ModalBody>
-                        <ModalFooter>
-                          <Button
-                            color="danger"
-                            variant="light"
-                            onPress={onClose}>
-                            Close
-                          </Button>
-                          <Button color="primary" onPress={onClose}>
-                            Action
-                          </Button>
-                        </ModalFooter>
-                      </>
-                    )}
-                  </ModalContent>
-                </Modal>
               </div>
             </div>
           ))}
+          <Modal isOpen={isOpen} setIsOpen={setIsOpen}>
+            <ModalContent>
+              {(onClose) => (
+                <>
+                  <ModalHeader className="flex flex-col gap-1">
+                    Are you sure you want to delete this entry?
+                  </ModalHeader>
+                  <ModalBody>
+                    <p>
+                      Once you delete this entry you can no longer have have
+                      this saved in the list.
+                    </p>
+                  </ModalBody>
+                  <ModalFooter>
+                    <Button color="primary" onPress={onClose}>
+                      Back
+                    </Button>
+                    <Button
+                      color="danger"
+                      variant="light"
+                      onClick={deleteEntry}>
+                      Delete
+                    </Button>
+                  </ModalFooter>
+                </>
+              )}
+            </ModalContent>
+          </Modal>
         </div>
       </div>
     </div>
